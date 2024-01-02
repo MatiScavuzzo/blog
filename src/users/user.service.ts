@@ -4,6 +4,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './schemas/user.schema';
@@ -11,14 +12,18 @@ import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { LoggedUser } from './interfaces/loggedUser';
+import { ShowedUser } from './interfaces/showedUser';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
-  async findAll(): Promise<User[]> {
+  async findAll(): Promise<ShowedUser[]> {
     try {
-      const users = await this.userModel.find().lean();
+      const users = await this.userModel
+        .find()
+        .projection({ username: 1, name: 1, surname: 1 })
+        .lean();
       if (!users) {
         throw new BadRequestException('No hay usuarios para mostrar');
       }
@@ -115,11 +120,12 @@ export class UsersService {
   }
 
   async validateUser(
-    username: string,
     password: string,
-  ): Promise<LoggedUser | null> {
+    username?: string,
+    email?: string,
+  ): Promise<LoggedUser> {
     try {
-      const user = await this.findByUsernameOrEmail(username);
+      const user = await this.findByUsernameOrEmail(username, email);
       if (!user) {
         throw new BadRequestException('Usuario no encontrado');
       }
@@ -144,26 +150,22 @@ export class UsersService {
     try {
       const user = await this.findByUsernameOrEmail(username);
       if (!user) {
-        throw new BadRequestException('Usuario no encontrado');
+        throw new UnauthorizedException('Usuario no encontrado');
       }
 
       const passwordMatch = await bcrypt.compare(password, user.password);
       if (!passwordMatch) {
-        throw new BadRequestException('Contraseña incorrecta');
+        throw new UnauthorizedException('Contraseña incorrecta');
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      const updatedPassword = await this.updateUser(user.username, {
+      await this.updateUser(user.username, {
         password: hashedPassword,
       } as UpdateUserDto);
 
-      if (!updatedPassword) {
-        throw new BadRequestException('Error al actualizar la contraseña');
-      }
-
       return { message: 'Contraseña actualizada correctamente' }; // Devuelve un objeto con un mensaje de éxito.
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      if (error instanceof UnauthorizedException) {
         throw error;
       }
       throw new BadRequestException('Error al actualizar la contraseña'); // Si ocurre un error al actualizar la contraseña, lanza una excepción BadRequestException.
