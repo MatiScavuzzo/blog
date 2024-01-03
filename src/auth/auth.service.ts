@@ -16,14 +16,14 @@ export class AuthService {
 
   async validateUser(
     password: string,
-    email?: string,
-    username?: string,
+    username: string | undefined,
+    email: string | undefined,
   ): Promise<LoggedUser> {
     try {
       const user = await this.usersService.validateUser(
         password,
-        email,
         username,
+        email,
       );
       if (!user) {
         throw new UnauthorizedException('Usuario o contraseña incorrectos');

@@ -12,22 +12,20 @@ import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { LoggedUser } from './interfaces/loggedUser';
-import { ShowedUser } from './interfaces/showedUser';
+import { PublicUserInfo } from './interfaces/publicUserInfo';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
-  async findAll(): Promise<ShowedUser[]> {
+  async findAll(): Promise<PublicUserInfo[]> {
     try {
-      const users = await this.userModel
-        .find()
-        .projection({ username: 1, name: 1, surname: 1 })
-        .lean();
+      const users = await this.userModel.find().lean();
       if (!users) {
         throw new BadRequestException('No hay usuarios para mostrar');
       }
-      return users;
+      const publicUser = users.map((user) => this.filterSensitiveFields(user));
+      return publicUser;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -36,12 +34,27 @@ export class UsersService {
     }
   }
 
-  async findByUsernameOrEmail(
-    username?: string,
-    email?: string,
-  ): Promise<User> {
+  async findByUsernameOrEmail(params: {
+    username?: string;
+    email?: string;
+  }): Promise<User> {
     try {
-      const user = await this.userModel.findOne({ username, email }).lean();
+      const { username, email } = params;
+      if (!username && !email) {
+        throw new BadRequestException(
+          'Debe proporcionar un nombre de usuario o un email',
+        );
+      }
+      let query = {};
+
+      if (username) {
+        query = { ...query, username };
+      }
+
+      if (email) {
+        query = { ...query, email };
+      }
+      const user = await this.userModel.findOne(query);
       if (!user) {
         throw new BadRequestException('Usuario no encontrado');
       }
@@ -54,21 +67,14 @@ export class UsersService {
     }
   }
 
-  async createUser(
-    { password, ...userData }: CreateUserDto,
-    username: string,
-  ): Promise<User> {
+  async createUser({ password, ...userData }: CreateUserDto): Promise<User> {
     try {
-      const user = await this.findByUsernameOrEmail(username);
-      if (!user) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new this.userModel({
-          password: hashedPassword,
-          ...userData,
-        });
-        return newUser.save(); // Guarda el nuevo usuario en la base de datos y devuelve la instancia del objeto creado.
-      }
-      throw new ConflictException('El usuario ya existe'); // Si el usuario ya existe, lanza una excepción ConflictException.
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = new this.userModel({
+        password: hashedPassword,
+        ...userData,
+      });
+      return newUser.save(); // Guarda el nuevo usuario en la base de datos y devuelve la instancia del objeto creado.
     } catch (error) {
       if (error instanceof ConflictException) {
         throw error;
@@ -121,11 +127,16 @@ export class UsersService {
 
   async validateUser(
     password: string,
-    username?: string,
-    email?: string,
+    username: string | undefined,
+    email: string | undefined,
   ): Promise<LoggedUser> {
     try {
-      const user = await this.findByUsernameOrEmail(username, email);
+      if (!username && !email) {
+        throw new BadRequestException(
+          'Debe proporcionar un nombre de usuario o un email',
+        );
+      }
+      const user = await this.findByUsernameOrEmail({ username, email });
       if (!user) {
         throw new BadRequestException('Usuario no encontrado');
       }
@@ -148,7 +159,7 @@ export class UsersService {
     newPassword: string,
   ): Promise<{ message: string }> {
     try {
-      const user = await this.findByUsernameOrEmail(username);
+      const user = await this.findByUsernameOrEmail({ username });
       if (!user) {
         throw new UnauthorizedException('Usuario no encontrado');
       }
@@ -170,5 +181,19 @@ export class UsersService {
       }
       throw new BadRequestException('Error al actualizar la contraseña'); // Si ocurre un error al actualizar la contraseña, lanza una excepción BadRequestException.
     }
+  }
+
+  private filterSensitiveFields(user: User): PublicUserInfo {
+    if (!user) {
+      return null;
+    }
+    const publicUserInfo: PublicUserInfo = {
+      name: user.name,
+      surname: user.surname,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+    };
+    return publicUserInfo;
   }
 }
