@@ -34,11 +34,27 @@ export class UsersService {
     }
   }
 
-  async findByUsernameOrEmail(username?: string): Promise<User> {
+  async findByUsernameOrEmail(params: {
+    username?: string;
+    email?: string;
+  }): Promise<User> {
     try {
-      const user = await this.userModel.findOne({
-        username: username,
-      }); // Acá está el error al buscar por nombre de usuario o email --RESOLVER--
+      const { username, email } = params;
+      if (!username && !email) {
+        throw new BadRequestException(
+          'Debe proporcionar un nombre de usuario o un email',
+        );
+      }
+      let query = {};
+
+      if (username) {
+        query = { ...query, username };
+      }
+
+      if (email) {
+        query = { ...query, email };
+      }
+      const user = await this.userModel.findOne(query);
       if (!user) {
         throw new BadRequestException('Usuario no encontrado');
       }
@@ -109,9 +125,18 @@ export class UsersService {
     }
   }
 
-  async validateUser(password: string, username?: string): Promise<LoggedUser> {
+  async validateUser(
+    password: string,
+    username: string | undefined,
+    email: string | undefined,
+  ): Promise<LoggedUser> {
     try {
-      const user = await this.findByUsernameOrEmail(username); // Resolver búsqueda por Email
+      if (!username && !email) {
+        throw new BadRequestException(
+          'Debe proporcionar un nombre de usuario o un email',
+        );
+      }
+      const user = await this.findByUsernameOrEmail({ username, email });
       if (!user) {
         throw new BadRequestException('Usuario no encontrado');
       }
@@ -134,7 +159,7 @@ export class UsersService {
     newPassword: string,
   ): Promise<{ message: string }> {
     try {
-      const user = await this.findByUsernameOrEmail(username); // Resolver búsqueda por Email
+      const user = await this.findByUsernameOrEmail({ username });
       if (!user) {
         throw new UnauthorizedException('Usuario no encontrado');
       }
