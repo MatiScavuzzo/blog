@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { UserModule } from './users/user.module';
+import { UsersModule } from './users/user.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -9,7 +9,7 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true,
     }),
     MongooseModule.forRoot(process.env.DB_HOST),
-    UserModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [],

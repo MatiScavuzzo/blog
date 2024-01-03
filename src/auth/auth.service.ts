@@ -14,17 +14,9 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(
-    password: string,
-    email?: string,
-    username?: string,
-  ): Promise<LoggedUser> {
+  async validateUser(password: string, username?: string): Promise<LoggedUser> {
     try {
-      const user = await this.usersService.validateUser(
-        password,
-        email,
-        username,
-      );
+      const user = await this.usersService.validateUser(password, username);
       if (!user) {
         throw new UnauthorizedException('Usuario o contraseña incorrectos');
       }
