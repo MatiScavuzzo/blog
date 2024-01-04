@@ -52,6 +52,7 @@ export class UsersController {
       const validatedUser = await this.usersService.validateUser(
         password,
         username,
+        undefined, // Email no es necesario para validar el usuario en este caso porque se toma al usuario de la queryParam.
       );
       if (!validatedUser) {
         throw new BadRequestException('Usuario o contraseña incorrectos');

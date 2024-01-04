@@ -183,7 +183,7 @@ export class UsersService {
     }
   }
 
-  private filterSensitiveFields(user: User): PublicUserInfo {
+  public filterSensitiveFields(user: User): PublicUserInfo {
     if (!user) {
       return null;
     }
