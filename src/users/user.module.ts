@@ -10,5 +10,9 @@ import { UsersController } from './user.controller';
   ],
   controllers: [UsersController],
   providers: [UsersService],
+  exports: [
+    UsersService,
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+  ],
 })
 export class UsersModule {}

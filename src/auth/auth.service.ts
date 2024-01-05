@@ -15,11 +15,14 @@ export class AuthService {
   ) {}
 
   async validateUser(
-    password: string,
     username: string | undefined,
+    password: string,
     email: string | undefined,
   ): Promise<LoggedUser> {
     try {
+      if (!username && !email) {
+        throw new BadRequestException('Usuario o email requerido');
+      }
       const user = await this.usersService.validateUser(
         password,
         username,
@@ -30,7 +33,10 @@ export class AuthService {
       }
       return user;
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new BadRequestException('Error al validar el usuario'); // Si ocurre un error al validar el usuario, lanza una excepción BadRequestException.

@@ -34,31 +34,30 @@ export class UsersService {
     }
   }
 
-  async findByUsernameOrEmail(params: {
-    username?: string;
-    email?: string;
-  }): Promise<User> {
+  async findByUsernameOrEmail(
+    username?: string | undefined,
+    email?: string | undefined,
+  ): Promise<User> {
     try {
-      const { username, email } = params;
       if (!username && !email) {
         throw new BadRequestException(
           'Debe proporcionar un nombre de usuario o un email',
         );
       }
-      let query = {};
 
       if (username) {
-        query = { ...query, username };
+        const user = await this.userModel.findOne({ username });
+        if (!user) {
+          throw new BadRequestException('Usuario no encontrado');
+        }
+        return user;
+      } else if (email) {
+        const user = await this.userModel.findOne({ email });
+        if (!user) {
+          throw new BadRequestException('Usuario no encontrado');
+        }
+        return user;
       }
-
-      if (email) {
-        query = { ...query, email };
-      }
-      const user = await this.userModel.findOne(query);
-      if (!user) {
-        throw new BadRequestException('Usuario no encontrado');
-      }
-      return user;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -136,7 +135,7 @@ export class UsersService {
           'Debe proporcionar un nombre de usuario o un email',
         );
       }
-      const user = await this.findByUsernameOrEmail({ username, email });
+      const user = await this.findByUsernameOrEmail(username, email);
       if (!user) {
         throw new BadRequestException('Usuario no encontrado');
       }
@@ -159,7 +158,7 @@ export class UsersService {
     newPassword: string,
   ): Promise<{ message: string }> {
     try {
-      const user = await this.findByUsernameOrEmail({ username });
+      const user = await this.findByUsernameOrEmail(username, undefined);
       if (!user) {
         throw new UnauthorizedException('Usuario no encontrado');
       }
