@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { LoggedUser } from './interfaces/loggedUser';
 import {
+  PublicProfile,
   PublicUserInfo,
   PublicUserInfoAdmin,
 } from './interfaces/publicUserInfo';
@@ -85,6 +87,22 @@ export class UsersService {
         throw error;
       }
       throw new BadRequestException('Error al buscar el usuario');
+    }
+  }
+
+  async findProfile(username: string): Promise<PublicProfile> {
+    try {
+      if (!username) {
+        throw new NotFoundException('El usuario no existe');
+      }
+      const user = await this.userModel.findOne({ username });
+      const publicProfile = this.publicProfile(user);
+      return publicProfile;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al buscar el perfil');
     }
   }
 
@@ -209,8 +227,6 @@ export class UsersService {
       return null;
     }
     const publicUserInfo: PublicUserInfo = {
-      name: user.name,
-      surname: user.surname,
       username: user.username,
     };
     return publicUserInfo;
@@ -228,5 +244,18 @@ export class UsersService {
       role: user.role,
     };
     return publicUserInfoAdmin;
+  }
+
+  private publicProfile(user: User): PublicProfile {
+    if (!user) {
+      return null;
+    }
+    const publicProfile: PublicProfile = {
+      name: user.name,
+      surname: user.surname,
+      username: user.username,
+      email: user.email,
+    };
+    return publicProfile;
   }
 }

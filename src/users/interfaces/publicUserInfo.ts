@@ -7,7 +7,12 @@ export interface PublicUserInfoAdmin {
 }
 
 export interface PublicUserInfo {
+  username: string;
+}
+
+export interface PublicProfile {
   name: string;
   surname: string;
   username: string;
+  email: string;
 }
