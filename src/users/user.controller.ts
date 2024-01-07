@@ -6,23 +6,41 @@ import {
   InternalServerErrorException,
   Param,
   Post,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './user.service';
-import { ShowedUser } from './interfaces/showedUser';
 import { CreateUserDto } from './dto/create-user.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { LoggedUser } from './interfaces/loggedUser';
+import {
+  PublicUserInfo,
+  PublicUserInfoAdmin,
+} from './interfaces/publicUserInfo';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get()
-  async findAll(): Promise<ShowedUser[] | { message: string }> {
+  async findAll(
+    @Request() req: LoggedUser,
+  ): Promise<PublicUserInfoAdmin[] | PublicUserInfo[] | { message: string }> {
     try {
-      const users = await this.usersService.findAll();
-      if (!users) {
-        return { message: 'No hay usuarios para mostrar' };
+      if (req.role === 'admin') {
+        const users = await this.usersService.findAllAdmin();
+        if (!users) {
+          return { message: 'No hay usuarios para mostrar' };
+        }
+        return users; // Si el usuario es administrador, devuelve todos los usuarios.
+      } else {
+        const users = await this.usersService.findAll();
+        if (!users) {
+          return { message: 'No hay usuarios para mostrar' };
+        }
+        return users; // Si el usuario es público, devuelve determinados campos de usuario
       }
-      return users;
     } catch (error) {
       throw new BadRequestException('Error al mostrar usuarios'); // Si ocurre un error al mostrar los usuarios, lanza una excepción BadRequestException.
     }

@@ -12,7 +12,10 @@ import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { LoggedUser } from './interfaces/loggedUser';
-import { PublicUserInfo } from './interfaces/publicUserInfo';
+import {
+  PublicUserInfo,
+  PublicUserInfoAdmin,
+} from './interfaces/publicUserInfo';
 
 @Injectable()
 export class UsersService {
@@ -24,8 +27,27 @@ export class UsersService {
       if (!users) {
         throw new BadRequestException('No hay usuarios para mostrar');
       }
-      const publicUser = users.map((user) => this.filterSensitiveFields(user));
+      const publicUser = users.map((user) =>
+        this.filterSensitiveFieldsPublic(user),
+      );
       return publicUser;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Error al mostrar los usuarios');
+    }
+  }
+  async findAllAdmin(): Promise<PublicUserInfoAdmin[]> {
+    try {
+      const users = await this.userModel.find().lean();
+      if (!users) {
+        throw new BadRequestException('No hay usuarios para mostrar');
+      }
+      const publicUserAdmin = users.map((user) =>
+        this.filterSensitiveFieldsAdmin(user),
+      );
+      return publicUserAdmin;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -125,9 +147,9 @@ export class UsersService {
   }
 
   async validateUser(
-    password: string,
     username: string | undefined,
     email: string | undefined,
+    password: string,
   ): Promise<LoggedUser> {
     try {
       if (!username && !email) {
@@ -182,17 +204,29 @@ export class UsersService {
     }
   }
 
-  public filterSensitiveFields(user: User): PublicUserInfo {
+  private filterSensitiveFieldsPublic(user: User): PublicUserInfo {
     if (!user) {
       return null;
     }
     const publicUserInfo: PublicUserInfo = {
       name: user.name,
       surname: user.surname,
+      username: user.username,
+    };
+    return publicUserInfo;
+  }
+
+  private filterSensitiveFieldsAdmin(user: User): PublicUserInfoAdmin {
+    if (!user) {
+      return null;
+    }
+    const publicUserInfoAdmin: PublicUserInfoAdmin = {
+      name: user.name,
+      surname: user.surname,
       email: user.email,
       username: user.username,
       role: user.role,
     };
-    return publicUserInfo;
+    return publicUserInfoAdmin;
   }
 }

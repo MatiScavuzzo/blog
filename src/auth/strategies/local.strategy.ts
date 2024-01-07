@@ -11,22 +11,23 @@ import { LoggedUser } from 'src/users/interfaces/loggedUser';
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
   constructor(private authService: AuthService) {
-    super();
+    super({
+      usernameField: 'login',
+      passwordField: 'password',
+    });
   }
 
-  async validate(
-    password: string,
-    username: string | undefined,
-    email: string | undefined,
-  ): Promise<LoggedUser> {
+  async validate(login: string, password: string): Promise<LoggedUser> {
     try {
+      const email = this.isEmail(login) ? login : undefined;
+      const username = this.isEmail(login) ? undefined : login;
       if (!username && !email) {
         throw new BadRequestException('Usuario o email requerido');
       }
       const user = await this.authService.validateUser(
-        password,
         username,
         email,
+        password,
       );
       if (!user) {
         throw new UnauthorizedException('Usuario o contraseña incorrectos');
@@ -41,5 +42,10 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
       }
       throw new BadRequestException('Error al validar el usuario'); // Si ocurre un error al validar el usuario, lanza una excepción BadRequestException.
     }
+  }
+
+  private isEmail(value: string): boolean {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(value);
   }
 }
