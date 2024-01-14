@@ -132,9 +132,15 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
   ): Promise<{ message: string }> {
     try {
-      await this.usersService.createUser(createUserDto);
+      const newUser = await this.usersService.createUser(createUserDto);
+      if (!newUser) {
+        throw new BadRequestException('Error al crear el usuario'); // Si ocurre un error al crear el usuario, lanza una excepción BadRequestException.
+      }
       return { message: 'Usuario creado correctamente' }; // Si el usuario se crea correctamente, devuelve un mensaje de éxito.
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new InternalServerErrorException(
         'Ocurrió un error al crear el usuario',
         error,

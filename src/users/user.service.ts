@@ -106,20 +106,32 @@ export class UsersService {
     }
   }
 
-  async createUser({ password, ...userData }: CreateUserDto): Promise<User> {
+  async createUser({
+    password,
+    username,
+    ...userData
+  }: CreateUserDto): Promise<User> {
     try {
+      const existingUser = await this.findByUsernameOrEmail(username);
+      if (existingUser) {
+        throw new ConflictException('El nombre de usuario ya existe');
+      }
       const hashedPassword = await bcrypt.hash(password, 10);
       const newUser = new this.userModel({
         password: hashedPassword,
+        username: username,
         ...userData,
       });
-      return newUser.save(); // Guarda el nuevo usuario en la base de datos y devuelve la instancia del objeto creado.
+      const createdUser = newUser.save(); // Guarda el nuevo usuario en la base de datos y devuelve la instancia del objeto creado.
+      if (!createdUser) {
+        throw new ConflictException('Error al crear el usuario');
+      }
+      return createdUser;
     } catch (error) {
       if (error instanceof ConflictException) {
         throw error;
       }
-      throw new ConflictException('Error al crear el usuario'); // Si ocurre un error al crear el usuario, lanza una excepción ConflictException.
-      return; // Si ocurre un error al crear el usuario, devuelve undefined. Esto permite que el controlador maneje la excepción adecuadamente.
+      throw new ConflictException('Error al crear el usuario'); // Si ocurre un error al crear el usuario, lanza una excepción ConflictException.// Si ocurre un error al crear el usuario, devuelve undefined. Esto permite que el controlador maneje la excepción adecuadamente.
     }
   }
 
