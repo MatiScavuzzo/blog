@@ -19,9 +19,15 @@ import {
   PublicUserInfoAdmin,
 } from './interfaces/publicUserInfo';
 
+// Recordatorio: 15/01/2024 Modificar updateUser agregando las validaciones del DTO y la modificación de la respuesta
+
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+
+  private successResponse(message: string): { message: string } {
+    return { message };
+  }
 
   async findAll(): Promise<PublicUserInfo[]> {
     try {
@@ -110,23 +116,28 @@ export class UsersService {
     password,
     username,
     ...userData
-  }: CreateUserDto): Promise<User> {
+  }: CreateUserDto): Promise<{ message: string }> {
     try {
       const existingUser = await this.findByUsernameOrEmail(username);
       if (existingUser) {
         throw new ConflictException('El nombre de usuario ya existe');
       }
       const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = new this.userModel({
-        password: hashedPassword,
-        username: username,
-        ...userData,
-      });
+      const createUserDto = new CreateUserDto();
+      createUserDto.password = hashedPassword;
+      createUserDto.username = username;
+      createUserDto.email = userData.email;
+      createUserDto.name = userData.name;
+      createUserDto.surname = userData.surname;
+      createUserDto.role = userData.role;
+
+      const newUser = new this.userModel(createUserDto);
       const createdUser = newUser.save(); // Guarda el nuevo usuario en la base de datos y devuelve la instancia del objeto creado.
       if (!createdUser) {
         throw new ConflictException('Error al crear el usuario');
       }
-      return createdUser;
+      createdUser;
+      return this.successResponse('Usuario creado correctamente'); // Devuelve un objeto con un mensaje de éxito.
     } catch (error) {
       if (error instanceof ConflictException) {
         throw error;

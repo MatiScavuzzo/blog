@@ -9,10 +9,15 @@ import { Post } from './schemas/post.schema';
 import { Model } from 'mongoose';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { validate } from 'class-validator';
 
 @Injectable()
 export class PostsService {
   constructor(@InjectModel(Post.name) private postModel: Model<Post>) {}
+
+  private successResponse(message: string): { message: string } {
+    return { message };
+  }
 
   async findAll(limit?: number, skip?: number): Promise<Post[]> {
     try {
@@ -52,12 +57,16 @@ export class PostsService {
 
   async createPost(createPostDto: CreatePostDto): Promise<{ message: string }> {
     try {
+      const errors = await validate(createPostDto);
+      if (errors.length > 0) {
+        throw new BadRequestException('Datos de entrada inválidos');
+      }
       const createdPost = new this.postModel(createPostDto);
       if (!createdPost) {
         throw new BadRequestException('Error al crear el post');
       }
       await createdPost.save();
-      return { message: 'Post creado correctamente' };
+      return this.successResponse('Post creado correctamente');
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -75,6 +84,10 @@ export class PostsService {
       if (!post) {
         throw new NotFoundException('No se encuentra el post solicitado');
       }
+      const errors = await validate(updatePostDto);
+      if (errors.length > 0) {
+        throw new BadRequestException('Datos de entrada inválidos');
+      }
       const createdPost = await this.postModel.updateOne({
         _id: id,
         updatePostDto,
@@ -83,7 +96,7 @@ export class PostsService {
         throw new BadRequestException('Error al intentar acualizar el post');
       }
       createdPost;
-      return { message: 'Post actualizado exitosamente' };
+      return this.successResponse('Post actualizado correctamente');
     } catch (error) {
       if (
         error instanceof NotFoundException ||
