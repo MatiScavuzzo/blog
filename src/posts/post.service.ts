@@ -12,7 +12,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { validate } from 'class-validator';
 
-// 22/01/2024 queda: encontrar todos los post de un usuario, creación de método de búsqueda por título, contendido, etc. con parámetros de paginación
+// 23/01/2024 queda: creación de método de búsqueda por título, contendido, etc. con parámetros de paginación
 // Creación de método de filtrado por categoría, autor, etc. con parámetros de paginación.
 
 @Injectable()
@@ -72,6 +72,35 @@ export class PostsService {
         throw error;
       }
       this.handleInternalServer('Error al mostrar el post');
+    }
+  }
+
+  async findByAuthor(
+    author: string,
+    limit?: number,
+    skip?: number,
+  ): Promise<Post[]> {
+    try {
+      if (!limit) {
+        limit = 10;
+      }
+      if (!skip) {
+        skip = 0;
+      }
+      const posts = await this.postModel
+        .find({ author: author })
+        .limit(limit)
+        .skip(skip)
+        .lean();
+      if (!posts) {
+        this.handleNotFound('No hay posts para mostrar');
+      }
+      return posts;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.handleInternalServer('Error al mostrar los posts');
     }
   }
 
