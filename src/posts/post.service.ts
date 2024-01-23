@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -11,12 +12,31 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { validate } from 'class-validator';
 
+// 22/01/2024 queda: encontrar todos los post de un usuario, creación de método de búsqueda por título, contendido, etc. con parámetros de paginación
+// Creación de método de filtrado por categoría, autor, etc. con parámetros de paginación.
+
 @Injectable()
 export class PostsService {
   constructor(@InjectModel(Post.name) private postModel: Model<Post>) {}
 
   private successResponse(message: string): { message: string } {
     return { message };
+  }
+
+  private handleBadRequest(message: string): void {
+    throw new BadRequestException(message);
+  }
+
+  private handleConflict(message: string): void {
+    throw new ConflictException(message);
+  }
+
+  private handleInternalServer(message: string): void {
+    throw new InternalServerErrorException(message);
+  }
+
+  private handleNotFound(message: string): void {
+    throw new NotFoundException(message);
   }
 
   async findAll(limit?: number, skip?: number): Promise<Post[]> {
@@ -29,14 +49,14 @@ export class PostsService {
       }
       const posts = await this.postModel.find().limit(limit).skip(skip).lean();
       if (!posts) {
-        throw new NotFoundException('No hay posts para mostrar');
+        this.handleNotFound('No hay posts para mostrar');
       }
       return posts;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new InternalServerErrorException('Error al mostrar los posts');
+      this.handleInternalServer('Error al mostrar los posts');
     }
   }
 
@@ -44,14 +64,14 @@ export class PostsService {
     try {
       const post = await this.postModel.findOne({ _id: id }).lean();
       if (!post) {
-        throw new NotFoundException('Post no encontrado');
+        this.handleNotFound('Post no encontrado');
       }
       return post;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new InternalServerErrorException('Error al mostrar el post');
+      this.handleInternalServer('Error al mostrar el post');
     }
   }
 
@@ -59,11 +79,11 @@ export class PostsService {
     try {
       const errors = await validate(createPostDto);
       if (errors.length > 0) {
-        throw new BadRequestException('Datos de entrada inválidos');
+        this.handleBadRequest('Datos de entrada inválidos');
       }
       const createdPost = new this.postModel(createPostDto);
       if (!createdPost) {
-        throw new BadRequestException('Error al crear el post');
+        this.handleBadRequest('Error al crear el post');
       }
       await createdPost.save();
       return this.successResponse('Post creado correctamente');
@@ -71,7 +91,7 @@ export class PostsService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new InternalServerErrorException('Error al crear el post'); // Si ocurre un error desconocido, lanza una excepción de tipo InternalServerErrorException.
+      this.handleInternalServer('Error al crear el post'); // Si ocurre un error desconocido, lanza una excepción de tipo InternalServerErrorException.
     }
   }
 
@@ -82,20 +102,21 @@ export class PostsService {
     try {
       const post = await this.findOne(id);
       if (!post) {
-        throw new NotFoundException('No se encuentra el post solicitado');
+        this.handleNotFound('No se encuentra el post solicitado');
       }
-      const errors = await validate(updatePostDto);
+      const updatePost = new UpdatePostDto();
+      Object.assign(updatePost, updatePostDto);
+      const errors = await validate(updatePost);
       if (errors.length > 0) {
-        throw new BadRequestException('Datos de entrada inválidos');
+        this.handleBadRequest('Datos de entrada inválidos');
       }
-      const createdPost = await this.postModel.updateOne({
+      const updatedPost = await this.postModel.updateOne({
         _id: id,
         updatePostDto,
       });
-      if (!createdPost) {
-        throw new BadRequestException('Error al intentar acualizar el post');
+      if (!updatedPost) {
+        this.handleBadRequest('Error al intentar acualizar el post');
       }
-      createdPost;
       return this.successResponse('Post actualizado correctamente');
     } catch (error) {
       if (
@@ -104,7 +125,29 @@ export class PostsService {
       ) {
         throw error;
       }
-      throw new InternalServerErrorException('Error al actualizar el post');
+      this.handleInternalServer('Error al actualizar el post');
+    }
+  }
+
+  async deletePost(id: string): Promise<{ message: string }> {
+    try {
+      const post = await this.findOne(id);
+      if (!post) {
+        this.handleNotFound('No se encuentra el post solicitado');
+      }
+      const deletedPost = await this.postModel.deleteOne({ _id: id });
+      if (!deletedPost) {
+        this.handleBadRequest('Error al intentar eliminar el post');
+      }
+      return this.successResponse('Post eliminado correctamente');
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.handleInternalServer('Error al eliminar el post'); // Si ocurre un error desconocido, lanza una excepción de tipo InternalServerErrorException.
     }
   }
 }
