@@ -12,8 +12,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { validate } from 'class-validator';
 
-// 23/01/2024 queda: creación de método de búsqueda por título, contendido, etc. con parámetros de paginación
-// Creación de método de filtrado por categoría, autor, etc. con parámetros de paginación.
+// 23/01/2024 queda: Creación de método de filtrado por categoría, autor, etc. con parámetros de paginación.
 
 @Injectable()
 export class PostsService {
@@ -104,6 +103,93 @@ export class PostsService {
     }
   }
 
+  async findByTitle(
+    title: string,
+    limit?: number,
+    skip?: number,
+  ): Promise<Post[]> {
+    try {
+      if (!limit) {
+        limit = 10;
+      }
+      if (!skip) {
+        skip = 0;
+      }
+      const posts = await this.postModel
+        .find({ $text: { $search: title } }, { score: { $meta: 'textScore' } })
+        .limit(limit)
+        .skip(skip)
+        .lean();
+      if (!posts) {
+        this.handleNotFound('No hay posts para mostrar');
+      }
+      return posts;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.handleInternalServer('Error al mostrar los posts');
+    }
+  }
+
+  async findByContent(
+    content: string,
+    limit?: number,
+    skip?: number,
+  ): Promise<Post[]> {
+    try {
+      if (!limit) {
+        limit = 10;
+      }
+      if (!skip) {
+        skip = 0;
+      }
+      const posts = await this.postModel
+        .find({ body: { $regex: content, $options: 'i' } })
+        .limit(limit)
+        .skip(skip)
+        .lean();
+      if (!posts) {
+        this.handleNotFound('No hay posts para mostrar');
+      }
+      return posts;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.handleInternalServer('Error al mostrar los posts');
+    }
+  }
+
+  async findByCategory(
+    category: string,
+    limit?: number,
+    skip?: number,
+  ): Promise<Post[]> {
+    try {
+      if (!limit) {
+        limit = 10;
+      }
+      if (!skip) {
+        skip = 0;
+      }
+      const posts = await this.postModel
+        .find({ categories: category })
+        .limit(limit)
+        .skip(skip)
+        .lean();
+      if (!posts) {
+        this.handleNotFound('No hay posts para mostrar');
+      }
+      return posts;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.handleInternalServer('Error al mostrar los posts');
+    }
+  }
+
   async createPost(createPostDto: CreatePostDto): Promise<{ message: string }> {
     try {
       const errors = await validate(createPostDto);
@@ -139,11 +225,13 @@ export class PostsService {
       if (errors.length > 0) {
         this.handleBadRequest('Datos de entrada inválidos');
       }
-      const updatedPost = await this.postModel.updateOne({
-        _id: id,
+      const updatedPost = await this.postModel.updateOne(
+        {
+          _id: id,
+        },
         updatePostDto,
-      });
-      if (!updatedPost) {
+      );
+      if (!updatedPost || updatedPost.modifiedCount === 0) {
         this.handleBadRequest('Error al intentar acualizar el post');
       }
       return this.successResponse('Post actualizado correctamente');
