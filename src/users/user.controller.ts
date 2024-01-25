@@ -16,7 +16,7 @@ import {
 import { UsersService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { LoginRequest } from './interfaces/loggedUser';
+import { LoginRequest } from 'src/interfaces/loggedTypes';
 import {
   PublicProfile,
   PublicUserInfo,
