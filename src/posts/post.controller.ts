@@ -2,11 +2,14 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
+  ForbiddenException,
   Get,
   InternalServerErrorException,
   NotFoundException,
   Param,
   Post,
+  Put,
   Query,
   Req,
   UnauthorizedException,
@@ -18,6 +21,14 @@ import { PaginationQuery } from 'src/interfaces/paginationQuery';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { LoginRequest } from 'src/interfaces/loggedTypes';
 import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
+
+// Recordatorio: 26/01 Agregar admin routes
+
+enum Roles {
+  USER = 'user',
+  ADMIN = 'admin',
+}
 
 function isPositiveInteger(value: string): boolean {
   const regex = /[0-9]/gi;
@@ -28,7 +39,10 @@ function isPositiveInteger(value: string): boolean {
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
-  private getPaginationParams(paginationQuery: PaginationQuery) {
+  private getPaginationParams(paginationQuery: PaginationQuery): {
+    limit: number;
+    skip: number;
+  } {
     const getValidatedValue = (value: string, defaultValue: number): number => {
       return isPositiveInteger(value) ? parseInt(value, 10) : defaultValue;
     };
@@ -37,6 +51,10 @@ export class PostsController {
     const skip = getValidatedValue(paginationQuery.skip, 0);
 
     return { limit, skip };
+  }
+
+  private successResponse(message: string): { message: string } {
+    return { message };
   }
 
   @Get()
@@ -97,7 +115,7 @@ export class PostsController {
           'Error al crear el post, verifique los datos ingresados',
         );
       }
-      return { message: 'Post creado correctamente' };
+      return this.successResponse('Post creado correctamente');
     } catch (error) {
       if (
         error instanceof UnauthorizedException ||
@@ -106,6 +124,164 @@ export class PostsController {
         throw error;
       }
       throw new InternalServerErrorException('Error al crear el post');
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/edit')
+  async updatePost(
+    @Req() req: LoginRequest,
+    @Param('id') id: string,
+    @Body() updatePostDto: UpdatePostDto,
+  ): Promise<{ message: string }> {
+    try {
+      const post = await this.postsService.findOne(id);
+      const { username, role } = req.user;
+      if (username !== post.author && role !== Roles.ADMIN) {
+        throw new ForbiddenException(
+          'No tienes permisos para editar este post',
+        );
+      }
+      const updatedPost = await this.postsService.updatePost(id, updatePostDto);
+      if (!updatedPost) {
+        throw new BadRequestException(
+          'Error al intentar actualizar el post, verifique los datos ingresados',
+        );
+      }
+      return this.successResponse('Post actualizado correctamente');
+    } catch (error) {
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al actualizar el post');
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async deletePost(
+    @Req() req: LoginRequest,
+    @Param('id') id: string,
+  ): Promise<{ message: string }> {
+    try {
+      const post = await this.postsService.findOne(id);
+      const { username, role } = req.user;
+      if (username !== post.author && role !== Roles.ADMIN) {
+        throw new ForbiddenException(
+          'No tiene permisos para realizar esta acción0,',
+        );
+      }
+      const deletedPost = await this.postsService.deletePost(id);
+      if (!deletedPost) {
+        throw new BadRequestException('Error al intentar eliminar el post');
+      }
+      return this.successResponse('Post eliminado correctamente');
+    } catch (error) {
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al eliminar el post');
+    }
+  }
+
+  @Get('user/:username')
+  async findPostsByUser(
+    @Param('username') username: string,
+    @Query() paginationQuery: PaginationQuery,
+  ): Promise<Publication[]> {
+    try {
+      const { limit, skip } = this.getPaginationParams(paginationQuery);
+      const posts = await this.postsService.findByAuthor(username, limit, skip);
+      if (!posts) {
+        throw new NotFoundException('No hay posts para mostrar');
+      }
+      return posts;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Ocurrió un error al intentar mostrar los posts',
+      );
+    }
+  }
+
+  @Get('search')
+  async searchPosts(
+    @Query('title') title: string,
+    @Query('content') content: string,
+    @Query() paginationQuery: PaginationQuery,
+  ): Promise<Publication[]> {
+    try {
+      const { limit, skip } = this.getPaginationParams(paginationQuery);
+      if (!title && !content) {
+        const posts = await this.postsService.findAll(limit, skip);
+        if (!posts) {
+          throw new NotFoundException('No hay posts para mostrar');
+        }
+        return posts;
+      }
+      if (title) {
+        const posts = await this.postsService.findByTitle(title, limit, skip);
+        if (!posts) {
+          throw new NotFoundException(
+            'No hay posts para mostrar con los datos solicitados',
+          );
+        }
+        return posts;
+      }
+      if (content) {
+        const posts = await this.postsService.findByContent(
+          content,
+          limit,
+          skip,
+        );
+        if (!posts) {
+          throw new NotFoundException(
+            'No hay posts para mostrar con los datos solicitados',
+          );
+        }
+        return posts;
+      }
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Ocurrió un error al intentar mostrar los posts',
+      );
+    }
+  }
+
+  @Get('filter/:category')
+  async findPostsByCategory(
+    @Param('category') category: string,
+    @Query() paginationQuery: PaginationQuery,
+  ): Promise<Publication[]> {
+    try {
+      const { limit, skip } = this.getPaginationParams(paginationQuery);
+      const posts = await this.postsService.findByCategory(
+        category,
+        limit,
+        skip,
+      );
+      if (!posts) {
+        throw new NotFoundException('No hay posts para mostrar');
+      }
+      return posts;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Ocurrió un error al intentar mostrar los posts',
+      );
     }
   }
 }

@@ -24,7 +24,7 @@ import {
 } from './interfaces/publicUserInfo';
 import { UpdateUserDto } from './dto/update-user.dto';
 
-// Recordatorio: Agregar recovery password method (Olvidó su contraseña)
+// Recordatorio: 26/01 Agregar admin routes
 
 enum Roles {
   ADMIN = 'admin',
