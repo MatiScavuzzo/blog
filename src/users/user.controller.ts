@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   Get,
   InternalServerErrorException,
+  NotFoundException,
   Param,
   Post,
   Put,
@@ -23,10 +24,12 @@ import {
   PublicUserInfoAdmin,
 } from './interfaces/publicUserInfo';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 // Recordatorio: 26/01 Agregar admin routes
 
-enum Roles {
+enum Role {
   ADMIN = 'admin',
   USER = 'user',
 }
@@ -35,28 +38,41 @@ enum Roles {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   @Get()
   async findAll(
     @Request() req: LoginRequest,
   ): Promise<PublicUserInfoAdmin[] | PublicUserInfo[] | { message: string }> {
     try {
       const { role } = req.user;
-      if (role === Roles.ADMIN) {
+      if (role === Role.ADMIN) {
         const users = await this.usersService.findAllAdmin();
         if (!users) {
           return { message: 'No hay usuarios para mostrar' };
         }
         return users; // Si el usuario es administrador, devuelve todos los usuarios.
-      } else {
-        const users = await this.usersService.findAll();
-        if (!users) {
-          return { message: 'No hay usuarios para mostrar' };
-        }
-        return users; // Si el usuario es público, devuelve sólo el username (por ejemplo para clickearlos y acceder a los perfiles)
       }
     } catch (error) {
       throw new BadRequestException('Error al mostrar usuarios'); // Si ocurre un error al mostrar los usuarios, lanza una excepción BadRequestException.
+    }
+  }
+
+  @Get()
+  async findAllPublic(): Promise<PublicUserInfo[] | { message: string }> {
+    try {
+      const users = await this.usersService.findAll();
+      if (!users) {
+        throw new NotFoundException('No hay usuarios para mostrar');
+      }
+      return users; // Si el usuario es público('user'), devuelve sólo el username (por ejemplo para clickearlos y acceder a los perfiles)
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Error al intentar encontrar los usuarios',
+      );
     }
   }
 
@@ -76,7 +92,8 @@ export class UsersController {
     }
   }
 
-  @UseGuards(JwtAuthGuard) // Solo los usuarios dueños del perfil o los administradores pueden modificar perfiles
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER) // Solo los usuarios dueños del perfil o los administradores pueden modificar perfiles
   @Put(':username')
   async updateProfile(
     @Req() req: LoginRequest,
@@ -85,7 +102,7 @@ export class UsersController {
   ): Promise<{ message: string }> {
     try {
       const { username: usernameRequest, role } = req.user;
-      if (usernameRequest !== username && role !== Roles.ADMIN) {
+      if (usernameRequest !== username && role !== Role.ADMIN) {
         throw new ForbiddenException(
           'No tienes permisos para realizar esta acción',
         );
@@ -102,7 +119,8 @@ export class UsersController {
     }
   }
 
-  @UseGuards(JwtAuthGuard) // Solo los dueños del perfil o los administradores pueden eliminar perfiles
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER) // Solo los dueños del perfil o los administradores pueden eliminar perfiles
   @Delete(':username')
   async deleteProfile(
     @Req() req: LoginRequest,
@@ -110,7 +128,7 @@ export class UsersController {
   ): Promise<{ message: string }> {
     try {
       const { username: usernameRequest, role } = req.user;
-      if (usernameRequest !== username && role !== Roles.ADMIN) {
+      if (usernameRequest !== username && role !== Role.ADMIN) {
         throw new ForbiddenException(
           'No tienes permisos para realizar esta acción',
         );

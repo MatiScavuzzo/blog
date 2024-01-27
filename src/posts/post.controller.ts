@@ -22,10 +22,10 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { LoginRequest } from 'src/interfaces/loggedTypes';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
-// Recordatorio: 26/01 Agregar admin routes
-
-enum Roles {
+enum Role {
   USER = 'user',
   ADMIN = 'admin',
 }
@@ -127,7 +127,8 @@ export class PostsController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
   @Put(':id/edit')
   async updatePost(
     @Req() req: LoginRequest,
@@ -137,7 +138,7 @@ export class PostsController {
     try {
       const post = await this.postsService.findOne(id);
       const { username, role } = req.user;
-      if (username !== post.author && role !== Roles.ADMIN) {
+      if (username !== post.author && role !== Role.ADMIN) {
         throw new ForbiddenException(
           'No tienes permisos para editar este post',
         );
@@ -160,7 +161,8 @@ export class PostsController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
   @Delete(':id')
   async deletePost(
     @Req() req: LoginRequest,
@@ -169,7 +171,7 @@ export class PostsController {
     try {
       const post = await this.postsService.findOne(id);
       const { username, role } = req.user;
-      if (username !== post.author && role !== Roles.ADMIN) {
+      if (username !== post.author && role !== Role.ADMIN) {
         throw new ForbiddenException(
           'No tiene permisos para realizar esta acción0,',
         );
