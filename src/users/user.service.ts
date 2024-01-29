@@ -26,23 +26,23 @@ export class UsersService {
 
   private successResponse(message: string): { message: string } {
     return { message };
-  }
+  } // Método privado para manejar respuesta exitosa.
 
   private handleBadRequest(message: string): void {
     throw new BadRequestException(message);
-  }
+  } // Método privado para manejar BadRequestException.
 
   private handleConflict(message: string): void {
     throw new ConflictException(message);
-  }
+  } // Método privado para manejar ConflictException.
 
   private handleInternalServer(message: string): void {
     throw new InternalServerErrorException(message);
-  }
+  } // Método privado para manejar InternalServerErrorException.
 
   private handleNotFound(message: string): void {
     throw new NotFoundException(message);
-  }
+  } // Método privado para manejar NotFoundException
 
   private filterSensitiveFieldsPublic(user: User): PublicUserInfo {
     if (!user) {
@@ -52,7 +52,7 @@ export class UsersService {
       username: user.username,
     };
     return publicUserInfo;
-  }
+  } // Método privado para manejar el tipo de información que recibe un usuario de rol 'user' al acceder al listado de usuarios de la db.
 
   private filterSensitiveFieldsAdmin(user: User): PublicUserInfoAdmin {
     if (!user) {
@@ -66,7 +66,7 @@ export class UsersService {
       role: user.role,
     };
     return publicUserInfoAdmin;
-  }
+  } // Método privado para manejar el tipo de información que recibe un usuario de rol 'admin' al acceder al listado de usuarios de la db.
 
   private publicProfile(user: User): PublicProfile {
     if (!user) {
@@ -79,7 +79,8 @@ export class UsersService {
       email: user.email,
     };
     return publicProfile;
-  }
+  } // Método privado para manejar la información que se muestra de los usuarios en su perfil.
+
   async findAll(): Promise<PublicUserInfo[]> {
     try {
       const users = await this.userModel.find().lean();
