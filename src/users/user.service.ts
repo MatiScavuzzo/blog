@@ -11,7 +11,7 @@ import { User } from './schemas/user.schema';
 import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { LoggedUser } from './interfaces/loggedUser';
+import { LoggedUser } from 'src/interfaces/loggedTypes';
 import {
   PublicProfile,
   PublicUserInfo,
@@ -97,7 +97,8 @@ export class UsersService {
       }
       this.handleInternalServer('Error al mostrar los usuarios');
     }
-  }
+  } // Método para devolver todos los usuarios para los usuarios de rol 'user'
+
   async findAllAdmin(): Promise<PublicUserInfoAdmin[]> {
     try {
       const users = await this.userModel.find().lean();
@@ -114,7 +115,7 @@ export class UsersService {
       }
       this.handleInternalServer('Error al mostrar los usuarios');
     }
-  }
+  } // Método para devolver todos los usuarios para los usuarios de rol 'admin'
 
   async findByUsernameOrEmail(
     username?: string | undefined,
@@ -131,13 +132,13 @@ export class UsersService {
         const user = await this.userModel.findOne({ username });
         if (!user) {
           this.handleNotFound('Usuario no encontrado');
-        }
+        } // Si no se encuentra el usuario, se lanza una excepción NotFoundException.
         return user;
       } else if (email) {
         const user = await this.userModel.findOne({ email });
         if (!user) {
           this.handleNotFound('Usuario no encontrado');
-        }
+        } // Si no se encuentra el usuario, se lanza una excepción NotFoundException.
         return user;
       }
     } catch (error) {
@@ -147,25 +148,25 @@ export class UsersService {
       ) {
         throw error;
       }
-      this.handleInternalServer('Error al buscar el usuario');
+      this.handleInternalServer('Error al buscar el usuario'); // Si ocurre un error al buscar el usuario arroja una excepción InternalServerErrorException.
     }
-  }
+  } // Método para encontrar al usuario que intenta hacer el login, ya sea mediante 'username' o 'email'
 
   async findProfile(username: string): Promise<PublicProfile> {
     try {
       if (!username) {
         this.handleNotFound('El usuario no existe');
-      }
+      } // Si no llega el parámetro username lanza una excepción de tipo NotFoundException.
       const user = await this.userModel.findOne({ username });
       const publicProfile = this.publicProfile(user);
-      return publicProfile;
+      return publicProfile; // Devuelve el perfil de usuario con datos que pueden ser visibles, a excepción de la contraseña.
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.handleInternalServer('Error al buscar el perfil');
+      this.handleInternalServer('Error al buscar el perfil'); // Si ocurre un error al intentar encontrar el perfil arroja una excepción InternalServerErrorException.
     }
-  }
+  } // Método para acceder al perfil de un usuario determinado.
 
   async createUser({
     password,
@@ -176,7 +177,7 @@ export class UsersService {
       const existingUser = await this.findByUsernameOrEmail(username);
       if (existingUser) {
         this.handleConflict('El nombre de usuario ya existe');
-      }
+      } // Si el usuario ya existe, lanza una excepción ConflictException.
       const hashedPassword = await bcrypt.hash(password, 10);
       const createUserDto = new CreateUserDto();
       createUserDto.password = hashedPassword;
@@ -186,19 +187,27 @@ export class UsersService {
       createUserDto.surname = userData.surname;
       createUserDto.role = userData.role;
 
+      const validationErrors = await validate(createUserDto);
+      if (validationErrors.length > 0) {
+        this.handleBadRequest('Datos inválidos');
+      } // Valida los datos proporcionados en el body de la petición POST, con class-validator de acuerdo al DTO. De resultar un error, lanza una BadRequestException.
+
       const newUser = new this.userModel(createUserDto);
       const createdUser = await newUser.save(); // Guarda el nuevo usuario en la base de datos y devuelve la instancia del objeto creado.
       if (!createdUser) {
         this.handleConflict('Error al crear el usuario');
-      }
+      } // Si ocurre un error al guardar el documento en la db, se lanza un error ConflictException
       return this.successResponse('Usuario creado correctamente'); // Devuelve un objeto con un mensaje de éxito.
     } catch (error) {
-      if (error instanceof ConflictException) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       this.handleInternalServer('Error al crear el usuario'); // Si ocurre un error al crear el usuario, lanza una excepción InternalServerErrorException.
     }
-  }
+  } // Método para crear un nuevo usuario. El parámetro password es el hash de la contraseña proporcionada por el usuario. El resto de parámetros son los datos del usuario a crear.
 
   async updateUser(
     username: string,
@@ -210,16 +219,16 @@ export class UsersService {
       const validationErrors = await validate(updateDto);
       if (validationErrors.length > 0) {
         this.handleBadRequest('Datos inválidos');
-      }
+      } // Valida los datos proporcionados en el body de la petición PUT, con class-validator de acuerdo al DTO. De resultar un error, lanza una BadRequestException.
       const updatedUser = await this.userModel.updateOne(
         {
           username: username,
         },
         updateUserDto,
-      );
+      ); // Actualiza el usuario con los datos proporcionados en el body de la petición PUT.
       if (updatedUser.modifiedCount === 0) {
         this.handleNotFound('Usuario no encontrado para actualizar');
-      }
+      } // Si no se encuentran coincidencias con el usuario a actualizar, se lanza una excepción NotFoundException.
       return this.successResponse('Usuario actualizado correctamente'); // Devuelve un objeto con un mensaje de éxito.
     } catch (error) {
       if (
@@ -230,16 +239,16 @@ export class UsersService {
       }
       this.handleInternalServer('Error al actualizar el usuario'); // Si ocurre un error al actualizar el usuario, lanza una excepción InternalServerErrorException.
     }
-  }
+  } // Método para actualizar un usuario. El parámetro updateUserDto es el objeto con los datos a actualizar. El parámetro username es el nombre de usuario del usuario a actualizar.
 
   async deleteUser(username: string): Promise<{ message: string }> {
     try {
       const deletedUser = await this.userModel.deleteOne({
         username: username,
-      });
+      }); // Elimina el usuario con el nombre de usuario proporcionado.
       if (deletedUser.deletedCount === 0) {
         this.handleNotFound('Usuario no encontrado');
-      }
+      } // Si no se encuentra coincidencia con el usuario a eliminar, se lanza una excepción NotFoundException.
       return this.successResponse('Usuario eliminado correctamente'); // Devuelve un objeto con un mensaje de éxito.
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -247,7 +256,7 @@ export class UsersService {
       }
       this.handleInternalServer('Error al eliminar el usuario'); // Si ocurre un error al eliminar el usuario, lanza una excepción InternalServerErrorException.
     }
-  }
+  } // Método para eliminar un usuario. El parámetro username es el nombre de usuario del usuario a eliminar.
 
   async validateUser(
     username: string | undefined,
@@ -259,15 +268,15 @@ export class UsersService {
         this.handleBadRequest(
           'Debe proporcionar un nombre de usuario o un email',
         );
-      }
-      const user = await this.findByUsernameOrEmail(username, email);
+      } // Si no se proporciona un nombre de usuario ni un email, lanza una excepción BadRequestException.
+      const user = await this.findByUsernameOrEmail(username, email); // Busca al usuario con los datos proporcionados, sea con username o con email
       if (!user) {
-        this.handleBadRequest('Usuario no encontrado');
-      }
-      const passwordMatch = await bcrypt.compare(password, user.password);
+        this.handleNotFound('Usuario no encontrado');
+      } // Si no se encuentra el usuario, lanza una excepción NotFoundException.
+      const passwordMatch = await bcrypt.compare(password, user.password); // Compara la contraseña proporcionada con la contraseña del usuario.
       if (!passwordMatch) {
         this.handleBadRequest('Contraseña incorrecta');
-      }
+      } // Si la contraseña no coincide, lanza una excepción BadRequestException.
       return { username: user.username, role: user.role }; // Devuelve un objeto con el nombre de usuario y el rol del usuario.
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -275,7 +284,7 @@ export class UsersService {
       }
       this.handleInternalServer('Error al validar el usuario'); // Si ocurre un error al validar el usuario, lanza una excepción InternalServerErrorException.
     }
-  }
+  } // Método para validar el usuario que intenta hacer el login. El parámetro password es la contraseña proporcionada por el usuario. El parámetro username o email es el nombre de usuario o email del usuario a validar.
 
   async updatePassword(
     username: string,
@@ -283,32 +292,33 @@ export class UsersService {
     newPassword: string,
   ): Promise<{ message: string }> {
     try {
-      const user = await this.findByUsernameOrEmail(username, undefined);
+      const user = await this.findByUsernameOrEmail(username, undefined); // Busca al usuario con el nombre de usuario proporcionado. El segundo parámetro, declarado como undefined es el por el campo Email, (continua abajo)
+      // porque para cambiar la password tiene que estar logueado en la app previamente el usuario y el parámetro va a llegar desde el controlador como username.
       if (!user) {
         this.handleNotFound('Usuario no encontrado');
-      }
+      } // Si no se encuentra el usuario, lanza una excepción NotFoundException.
 
-      const passwordMatch = await bcrypt.compare(password, user.password);
+      const passwordMatch = await bcrypt.compare(password, user.password); // Compara la contraseña proporcionada con la contraseña del usuario.
       if (!passwordMatch) {
         this.handleBadRequest('Contraseña incorrecta');
-      }
+      } // Si la contraseña no coincide, lanza una excepción BadRequestException.
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const hashedPassword = await bcrypt.hash(newPassword, 10); // Si la contraseña coincide, se encripta la nueva contraseña y se actualiza el usuario.
       const updatePasswordDto = new UpdatePasswordDto();
       updatePasswordDto.password = hashedPassword;
       const validationErrors = await validate(updatePasswordDto);
       if (validationErrors.length > 0) {
         this.handleBadRequest('Datos inválidos');
-      }
+      } // Valida los datos proporcionados en el body de la petición PUT, con class-validator de acuerdo al DTO. De resultar un error, lanza una BadRequestException.
       const updatedPassword = await this.userModel.updateOne(
         {
           username: username,
         },
         updatePasswordDto,
-      );
+      ); // Actualiza el usuario con los datos proporcionados en el body de la petición PUT.
       if (updatedPassword.modifiedCount === 0) {
         this.handleNotFound('Usuario no encontrado');
-      }
+      } // Si no se encuentran coincidencias con el usuario a actualizar, se lanza una excepción NotFoundException.
       return this.successResponse('Contraseña actualizada correctamente'); // Devuelve un objeto con un mensaje de éxito.
     } catch (error) {
       if (
@@ -319,5 +329,6 @@ export class UsersService {
       }
       this.handleInternalServer('Error al actualizar la contraseña'); // Si ocurre un error al actualizar la contraseña, lanza una excepción InternalServerErrorException.
     }
-  }
+  } // Método para actualizar la contraseña de un usuario. El parámetro username es el nombre de usuario del usuario a actualizar. El parámetro password es la contraseña actual del usuario.
+  // El parámetro newPassword es la nueva contraseña del usuario.
 }
