@@ -1,73 +1,410 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Documentación de la API del Blog
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+### Scripts
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+# Instalar dependencias
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Installation
-
-```bash
 $ npm install
-```
 
-## Running the app
+# Ejecutar aplicación
 
-```bash
-# development
-$ npm run start
+- **start**: Inicia la aplicación NestJS.
+  $ npm start
 
-# watch mode
-$ npm run start:dev
+- **start:dev**: Inicia la aplicación en modo desarrollo con reinicio automático.
+  $ npm run start:dev
 
-# production mode
-$ npm run start:prod
-```
+- **start:debug**: Inicia la aplicación en modo depuración con reinicio automático.
+  $ npm run start:debug
 
-## Test
+- **start:prod**: Inicia la aplicación en modo de producción.
+  $ npm run start:prod
 
-```bash
-# unit tests
-$ npm run test
+# Compilar aplicación
 
-# e2e tests
-$ npm run test:e2e
+- **build**: Compila el proyecto NestJS.
+  $ npm run build
 
-# test coverage
-$ npm run test:cov
-```
+# Formatear aplicación
 
-## Support
+- **format**: Formatea los archivos TypeScript usando Prettier.
+  $ npm run format
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Detectar problemas de estilo
 
-## Stay in touch
+- **lint**: Ejecuta ESLint para buscar y corregir problemas de estilo.
+  $ npm run lint
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# Tests
 
-## License
+- **test**: Ejecuta los casos de prueba Jest.
+  $ npm test
 
-Nest is [MIT licensed](LICENSE).
+- **test:watch**: Ejecuta los casos de prueba Jest en modo observador.
+  $ npm run test:watch
+
+- **test:cov**: Ejecuta los casos de prueba Jest y genera informes de cobertura.
+  $ npm run test:cov
+
+- **test:debug**: Ejecuta los casos de prueba Jest en modo de depuración.
+  $ npm run test:debug
+
+- **test:e2e**: Ejecuta los casos de prueba end-to-end Jest.
+  $ npm run test:e2e
+
+Asegúrate de tener Node.js y npm instalados antes de ejecutar estos scripts.
+
+## Endpoints de Usuario
+
+### Obtener Todos los Usuarios (Solo para Administradores)
+
+- **Endpoint:** `/admin/users`
+- **Método:** GET
+- **Descripción:** Obtener una lista de todos los usuarios. Solo accesible para usuarios con el rol "admin".
+- **Solicitud:**
+  - Headers:
+    - Authorization: Bearer <Token JWT>
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    [
+      {
+        "name": "Juan",
+        "surname": "Pérez",
+        "email": "juan@example.com",
+        "username": "juan_perez",
+        "role": "usuario"
+      }
+      // ... otros usuarios
+    ]
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+### Obtener Todos los Usuarios Públicos
+
+- **Endpoint:** `/users`
+- **Método:** GET
+- **Descripción:** Obtener una lista de información pública de usuarios.
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    [
+      {
+        "username": "juan_perez"
+      }
+      // ... otros usuarios
+    ]
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+### Obtener Perfil de Usuario
+
+- **Endpoint:** `/usuarios/:username`
+- **Método:** GET
+- **Descripción:** Obtener el perfil público de un usuario por su nombre de usuario.
+- **Parámetros:**
+  - `username` (string): El nombre de usuario del usuario.
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    {
+      "name": "Juan",
+      "surname": "Pérez",
+      "username": "juan_perez",
+      "email": "juan@example.com"
+    }
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+### Actualizar Perfil de Usuario
+
+- **Endpoint:** `/usuarios/:username`
+- **Método:** PUT
+- **Descripción:** Actualizar el perfil de un usuario por su nombre de usuario. Solo accesible para el usuario o administrador.
+- **Parámetros:**
+  - `username` (string): El nombre de usuario del usuario.
+- **Solicitud:**
+  - Headers:
+    - Authorization: Bearer <Token JWT>
+  - Body (JSON):
+    ```json
+    {
+      "name": "Nuevo Nombre",
+      "surname": "Nuevo Apellido"
+    }
+    ```
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    {
+      "message": "Perfil actualizado exitosamente"
+    }
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+### Eliminar Perfil de Usuario
+
+- **Endpoint:** `/usuarios/:username`
+- **Método:** DELETE
+- **Descripción:** Eliminar el perfil de un usuario por su nombre de usuario. Solo accesible para el usuario o administrador.
+- **Parámetros:**
+  - `username` (string): El nombre de usuario del usuario.
+- **Solicitud:**
+  - Headers:
+    - Authorization: Bearer <Token JWT>
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    {
+      "message": "Perfil eliminado exitosamente"
+    }
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+### Crear Nuevo Usuario
+
+- **Endpoint:** `/usuarios/new`
+- **Método:** POST
+- **Descripción:** Crear un nuevo usuario.
+- **Solicitud:**
+  - Body (JSON):
+    ```json
+    {
+      "name": "Juan",
+      "surname": "Pérez",
+      "username": "juan_perez",
+      "email": "juan@example.com",
+      "password": "strongpassword"
+    }
+    ```
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    {
+      "message": "Usuario creado exitosamente"
+    }
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+### Cambiar Contraseña de Usuario
+
+- **Endpoint:** `/usuarios/:username/change-pass`
+- **Método:** PUT
+- **Descripción:** Cambiar la contraseña de un usuario por su nombre de usuario. Solo accesible para el usuario.
+- **Parámetros:**
+  - `username` (string): El nombre de usuario del usuario.
+- **Solicitud:**
+  - Headers:
+    - Authorization: Bearer <Token JWT>
+  - Body (JSON):
+    ```json
+    {
+      "password": "password actual",
+      "newpassword": "nueva password segura"
+    }
+    ```
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    {
+      "message": "Contraseña cambiada exitosamente"
+    }
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+## Endpoints de Autenticación
+
+### Inicio de Sesión de Usuario
+
+- **Endpoint:** `/auth/login`
+- **Método:** POST
+- **Descripción:** Autenticar e iniciar sesión de un usuario.
+- **Solicitud:**
+  - Body (JSON):
+    ```json
+    {
+      "username": "juan_perez",
+      "password": "strongpassword"
+    }
+    ```
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    {
+      "token": "Token JWT"
+    }
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+## Endpoints de Posts
+
+### Obtener Todos los Posts
+
+- **Endpoint:** `/posts`
+- **Método:** GET
+- **Descripción:** Obtener una lista de todos los posts.
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    [
+      {
+        "title": "Título del Post",
+        "content": "Contenido del Post",
+        "author": "juan_perez"
+      }
+      // ... otros posts
+    ]
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+### Obtener Post por ID
+
+- **Endpoint:** `/posts/:id`
+- **Método:** GET
+- **Descripción:** Obtener un post por su ID.
+- **Parámetros:**
+  - `id` (string): El ID del post.
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    {
+      "title": "Título del Post",
+      "content": "Contenido del Post",
+      "author": "juan_perez"
+    }
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+### Crear Nuevo Post
+
+- **Endpoint:** `/posts/new`
+- **Método:** POST
+- **Descripción:** Crear un nuevo post.
+- **Solicitud:**
+  - Headers:
+    - Authorization: Bearer <Token JWT>
+  - Body (JSON):
+    ```json
+    {
+      "title": "Título del Post",
+      "content": "Contenido del Post"
+    }
+    ```
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    {
+      "message": "Post creado exitosamente"
+    }
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+### Actualizar Post por ID
+
+- **Endpoint:** `/posts/:id`
+- **Método:** PUT
+- **Descripción:** Actualizar un post por su ID. Solo accesible para el autor del post.
+- **Parámetros:**
+  - `id` (string): El ID del post.
+- **Solicitud:**
+  - Headers:
+    - Authorization: Bearer <Token JWT>
+  - Body (JSON):
+    ```json
+    {
+      "title": "Título Actualizado",
+      "content": "Contenido Actualizado"
+    }
+    ```
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    {
+      "message": "Post actualizado exitosamente"
+    }
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```
+
+### Eliminar Post por ID
+
+- **Endpoint:** `/posts/:id`
+- **Método:** DELETE
+- **Descripción:** Eliminar un post por su ID. Solo accesible para el autor del post.
+- **Parámetros:**
+  - `id` (string): El ID del post.
+- **Solicitud:**
+  - Headers:
+    - Authorization: Bearer <Token JWT>
+- **Respuesta:**
+  - Éxito (200 OK):
+    ```json
+    {
+      "message": "Post eliminado exitosamente"
+    }
+    ```
+  - Error (4xx o 5xx):
+    ```json
+    {
+      "message": "Mensaje de error"
+    }
+    ```

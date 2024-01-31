@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { LoggedUser } from 'src/interfaces/loggedUser';
+import { LoggedUser } from 'src/interfaces/loggedTypes';
 import { UsersService } from 'src/users/user.service';
 
 @Injectable()
