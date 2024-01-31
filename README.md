@@ -4,9 +4,9 @@
 
 ### Instalar dependencias
 
-$ npm install
+- $ npm install
 
-# Ejecutar aplicación
+## Ejecutar aplicación
 
 - **start**: Inicia la aplicación NestJS.
   $ npm start
