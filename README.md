@@ -1,8 +1,8 @@
 # Documentación de la API del Blog
 
-### Scripts
+## Scripts
 
-# Instalar dependencias
+### Instalar dependencias
 
 $ npm install
 
@@ -20,22 +20,22 @@ $ npm install
 - **start:prod**: Inicia la aplicación en modo de producción.
   $ npm run start:prod
 
-# Compilar aplicación
+## Compilar aplicación
 
 - **build**: Compila el proyecto NestJS.
   $ npm run build
 
-# Formatear aplicación
+## Formatear aplicación
 
 - **format**: Formatea los archivos TypeScript usando Prettier.
   $ npm run format
 
-# Detectar problemas de estilo
+## Detectar problemas de estilo
 
 - **lint**: Ejecuta ESLint para buscar y corregir problemas de estilo.
   $ npm run lint
 
-# Tests
+## Tests
 
 - **test**: Ejecuta los casos de prueba Jest.
   $ npm test
