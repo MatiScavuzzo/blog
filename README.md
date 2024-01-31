@@ -2,7 +2,7 @@
 
 ## Scripts
 
-### Instalar dependencias
+## Instalar dependencias
 
 - $ npm install
 
